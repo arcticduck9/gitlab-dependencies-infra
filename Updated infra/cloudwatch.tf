@@ -8,7 +8,7 @@ resource "aws_acm_certificate" "gitlab" {
   validation_method = "DNS"
 
   subject_alternative_names = [
-    "*.${var.domain_name}"  # Wildcard for subdomains like registry.domain.com
+    "*.${var.domain_name}" # Wildcard for subdomains like registry.domain.com
   ]
 
   lifecycle {
@@ -105,7 +105,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_read_latency" {
   namespace           = "AWS/RDS"
   period              = "300"
   statistic           = "Average"
-  threshold           = "0.2"  # 200ms
+  threshold           = "0.2" # 200ms
   alarm_description   = "This metric monitors RDS read latency"
   alarm_actions       = [aws_sns_topic.gitlab_alerts.arn]
   ok_actions          = [aws_sns_topic.gitlab_alerts.arn]
@@ -125,7 +125,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_write_latency" {
   namespace           = "AWS/RDS"
   period              = "300"
   statistic           = "Average"
-  threshold           = "0.2"  # 200ms
+  threshold           = "0.2" # 200ms
   alarm_description   = "This metric monitors RDS write latency"
   alarm_actions       = [aws_sns_topic.gitlab_alerts.arn]
   ok_actions          = [aws_sns_topic.gitlab_alerts.arn]
@@ -139,7 +139,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_write_latency" {
 
 # CloudWatch Alarms for ElastiCache Redis
 resource "aws_cloudwatch_metric_alarm" "redis_cpu_utilization" {
-  for_each = toset(["001", "002", "003"])  # For 3 Redis nodes
+  for_each = toset(["001", "002", "003"]) # For 3 Redis nodes
 
   alarm_name          = "${var.project_name}-redis-${each.key}-high-cpu"
   comparison_operator = "GreaterThanThreshold"
@@ -161,7 +161,7 @@ resource "aws_cloudwatch_metric_alarm" "redis_cpu_utilization" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "redis_memory_utilization" {
-  for_each = toset(["001", "002", "003"])  # For 3 Redis nodes
+  for_each = toset(["001", "002", "003"]) # For 3 Redis nodes
 
   alarm_name          = "${var.project_name}-redis-${each.key}-high-memory"
   comparison_operator = "GreaterThanThreshold"
@@ -183,7 +183,7 @@ resource "aws_cloudwatch_metric_alarm" "redis_memory_utilization" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "redis_evictions" {
-  for_each = toset(["001", "002", "003"])  # For 3 Redis nodes
+  for_each = toset(["001", "002", "003"]) # For 3 Redis nodes
 
   alarm_name          = "${var.project_name}-redis-${each.key}-evictions"
   comparison_operator = "GreaterThanThreshold"
@@ -211,9 +211,9 @@ resource "aws_cloudwatch_metric_alarm" "s3_bucket_size" {
   evaluation_periods  = "1"
   metric_name         = "BucketSizeBytes"
   namespace           = "AWS/S3"
-  period              = "86400"  # Daily
+  period              = "86400" # Daily
   statistic           = "Average"
-  threshold           = "107374182400"  # 100GB in bytes
+  threshold           = "107374182400" # 100GB in bytes
   alarm_description   = "This metric monitors S3 bucket size"
   alarm_actions       = [aws_sns_topic.gitlab_alerts.arn]
 
@@ -282,7 +282,7 @@ resource "aws_cloudwatch_dashboard" "gitlab_infrastructure" {
         properties = {
           metrics = [
             for i in range(3) : [
-              "AWS/ElastiCache", "CPUUtilization", "CacheClusterId", 
+              "AWS/ElastiCache", "CPUUtilization", "CacheClusterId",
               "${aws_elasticache_replication_group.gitlab.replication_group_id}-${format("%03d", i + 1)}"
             ]
           ]
@@ -314,7 +314,6 @@ resource "aws_cloudwatch_dashboard" "gitlab_infrastructure" {
     ]
   })
 
-  tags = var.additional_tags
 }
 
 # CloudWatch Log Insights Queries for troubleshooting

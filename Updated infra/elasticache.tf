@@ -109,6 +109,25 @@ resource "aws_elasticache_user" "gitlab_redis" {
   }
 }
 
+resource "aws_secretsmanager_secret" "gitlab_redis_auth" {
+  name                    = "${var.project_name}/redis/auth-token-alt"
+  description             = "GitLab Redis auth token alternative"
+  kms_key_id              = aws_kms_key.gitlab.key_id
+  recovery_window_in_days = var.environment == "prod" ? 7 : 0
+
+  tags = var.additional_tags
+}
+
+resource "aws_secretsmanager_secret_version" "gitlab_redis_auth" {
+  secret_id = aws_secretsmanager_secret.gitlab_redis_auth.id
+  secret_string = jsonencode({
+    auth_token = random_password.redis_auth_token.result
+  })
+
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
+}
 # ElastiCache User Group
 resource "aws_elasticache_user_group" "gitlab_redis" {
   engine        = "REDIS"
@@ -122,50 +141,50 @@ resource "aws_elasticache_user_group" "gitlab_redis" {
 
 # ElastiCache Replication Group with Multi-AZ
 resource "aws_elasticache_replication_group" "gitlab" {
-  replication_group_id         = "${var.project_name}-redis"
-  description                  = "GitLab Redis cluster with failover"
-  
+  replication_group_id = "${var.project_name}-redis"
+  description          = "GitLab Redis cluster with failover"
+
   # Cluster Configuration
-  num_cache_clusters           = var.redis_num_cache_clusters
-  node_type                   = var.redis_node_type
-  engine                      = "redis"
-  engine_version              = var.redis_engine_version
-  parameter_group_name        = aws_elasticache_parameter_group.gitlab_redis.name
-  port                        = 6379
-  
+  num_cache_clusters   = var.redis_num_cache_clusters
+  node_type            = var.redis_node_type
+  engine               = "redis"
+  engine_version       = var.redis_engine_version
+  parameter_group_name = aws_elasticache_parameter_group.gitlab_redis.name
+  port                 = 6379
+
   # High Availability Configuration
   multi_az_enabled            = true
   automatic_failover_enabled  = true
   preferred_cache_cluster_azs = local.azs
 
   # Network Configuration
-  subnet_group_name          = aws_elasticache_subnet_group.gitlab.name
-  security_group_ids         = [aws_security_group.gitlab_redis.id]
+  subnet_group_name  = aws_elasticache_subnet_group.gitlab.name
+  security_group_ids = [aws_security_group.gitlab_redis.id]
 
   # Authentication and Security
   auth_token                 = random_password.redis_auth_token.result
   auth_token_update_strategy = "ROTATE"
-  user_group_ids            = [aws_elasticache_user_group.gitlab_redis.user_group_id]
+  user_group_ids             = [aws_elasticache_user_group.gitlab_redis.user_group_id]
   transit_encryption_enabled = true
   at_rest_encryption_enabled = true
-  kms_key_id                = aws_kms_key.gitlab.arn
+  kms_key_id                 = aws_kms_key.gitlab.arn
 
   # Backup Configuration
-  snapshot_retention_limit   = var.redis_snapshot_retention_limit
+  snapshot_retention_limit  = var.redis_snapshot_retention_limit
   snapshot_window           = var.redis_snapshot_window
   final_snapshot_identifier = "${var.project_name}-redis-final-snapshot-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
 
   # Maintenance Configuration
-  maintenance_window        = var.redis_maintenance_window
+  maintenance_window         = var.redis_maintenance_window
   auto_minor_version_upgrade = true
-  apply_immediately         = false
+  apply_immediately          = false
 
   # Logging Configuration
   log_delivery_configuration {
     destination      = aws_cloudwatch_log_group.gitlab_redis_slow.name
     destination_type = "cloudwatch-logs"
-    log_format      = "text"
-    log_type        = "slow-log"
+    log_format       = "text"
+    log_type         = "slow-log"
   }
 
   # Notification Configuration
@@ -190,8 +209,8 @@ resource "aws_elasticache_replication_group" "gitlab" {
 # Store Redis auth token in AWS Secrets Manager
 resource "aws_secretsmanager_secret" "gitlab_redis_password" {
   name                    = "${var.project_name}/redis/auth-token"
-  description            = "GitLab Redis auth token"
-  kms_key_id            = aws_kms_key.gitlab.key_id
+  description             = "GitLab Redis auth token"
+  kms_key_id              = aws_kms_key.gitlab.key_id
   recovery_window_in_days = var.environment == "prod" ? 7 : 0
 
   tags = var.additional_tags
@@ -203,7 +222,7 @@ resource "aws_secretsmanager_secret_version" "gitlab_redis_password" {
     auth_token              = random_password.redis_auth_token.result
     primary_endpoint        = aws_elasticache_replication_group.gitlab.primary_endpoint_address
     reader_endpoint_address = aws_elasticache_replication_group.gitlab.reader_endpoint_address
-    port                   = aws_elasticache_replication_group.gitlab.port
+    port                    = aws_elasticache_replication_group.gitlab.port
     configuration_endpoint  = aws_elasticache_replication_group.gitlab.configuration_endpoint_address
   })
 

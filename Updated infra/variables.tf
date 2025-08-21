@@ -125,7 +125,7 @@ variable "enable_rds_proxy" {
 variable "rds_proxy_idle_client_timeout" {
   description = "The number of seconds that a connection to the proxy can be inactive"
   type        = number
-  default     = 1800  # 30 minutes
+  default     = 1800 # 30 minutes
 }
 
 variable "rds_proxy_max_connections_percent" {

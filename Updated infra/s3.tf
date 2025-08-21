@@ -55,6 +55,11 @@ resource "aws_s3_bucket_lifecycle_configuration" "gitlab" {
     id     = "gitlab_lifecycle"
     status = "Enabled"
 
+    # Add explicit filter instead of no filter
+    filter {
+      prefix = ""
+    }
+
     # Current version lifecycle
     transition {
       days          = var.s3_transition_to_ia_days
@@ -168,7 +173,7 @@ resource "aws_sns_topic_policy" "gitlab_alerts_s3" {
         Principal = {
           Service = "s3.amazonaws.com"
         }
-        Action = "SNS:Publish"
+        Action   = "SNS:Publish"
         Resource = aws_sns_topic.gitlab_alerts.arn
         Condition = {
           StringEquals = {
